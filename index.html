@@ -18,7 +18,8 @@
             top: 10px;
             left: 10px;
             z-index: 1; /* this makes sure the filters appear above the map */
-            background: white;
+/*            background: white;*/
+            color: white;
             padding: 10px;
             border-radius: 5px;
         }
@@ -239,7 +240,7 @@
                     filters.push(['==', ['get', 'gender'], filterState.gender]);
                 }
 
-    
+
 
                 if (filterState.birthyear) {
                     filters.push([
