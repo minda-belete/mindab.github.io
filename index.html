@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf8">
-    <title>vector tile source</title>
+    <title>Notable People</title>
     <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
     <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet">
     <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
@@ -19,9 +19,10 @@
             left: 10px;
             z-index: 1; /* this makes sure the filters appear above the map */
 /*            background: white;*/
-            color: white;
+            color: violet;
             padding: 10px;
             border-radius: 5px;
+            border-color: black;
         }
         #filters select {
             margin-bottom: 5px;
@@ -76,6 +77,17 @@
         <button id="toggle-labels">Toggle Labels</button>
         <button id="toggle-points">Toggle Points</button>
         <button id="toggle-lines">Toggle Lines</button>
+
+        <div class="form-group mt-3">
+            <label for="name-filter">Search by Name</label>
+            <input type="text" class="form-control" id="name-filter" placeholder="Enter name">
+        </div>
+
+        <div class="form-group mt-3">
+            <label for="qcode-filter">Search by Wikidata code</label>
+            <input type="text" class="form-control" id="qcode-filter" placeholder="Enter individaul qcode">
+        </div>
+
     </div>
 
 
@@ -88,7 +100,7 @@
         const map = new mapboxgl.Map({
             container: 'map',
             style: 'mapbox://styles/ethio0943/clkci2640001j01po8m6lg1i1',
-            zoom: 1
+            zoom: 1.8
         });
 
         // Global filter state
@@ -113,34 +125,6 @@
                 url: 'mapbox://ethio0943.clkjffojq0pbp2jqn0s41xrpx-5ssy9'
             });
 
-            map.addLayer({
-                'id': 'vis_test3-label',
-                'type': 'symbol',
-                'source': 'vis_test3',
-                'source-layer': 'vis_test3',
-                'layout': {
-                    'text-field': ['get', 'lname'],
-                    'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
-                    'text-size': ['step', ['to-number', ['get', 'rank']], 5, 8, 12, 18, 24],
-                    'text-letter-spacing': 0.05,
-                    'text-offset': [0, 1.5]
-                },
-                'paint': {
-                    'text-color': '#202',
-                    'text-halo-color': '#fff',
-                    'text-halo-width': 2,
-                    'text-opacity': [
-                        'interpolate',
-                        ['linear'],
-                        ['zoom'], 
-                        5, // Adjust the zoom levels here
-                        ['step', ['to-number', ['get', 'rank']], 0, 20, 1],
-                        12, // Adjust the zoom levels here
-                        1 
-                    ]
-
-                }
-            });
 
             map.addLayer({
                 'id': 'vis_lines4-lines',
@@ -178,21 +162,143 @@
                         'orange'
                     ],
                     'circle-radius': [
-                        'match',
-                        ['get', 'rank'],
-                        '25th',0.5,
-                        '50th',1.5,
-                        '75th',3,
-                        '100th',5,
-                        1
+                        'interpolate', 
+                        ['linear'], 
+                        ['zoom'],
+
+                        0, ['match', ['get', 'rank'], 
+                            '25th', 2, 
+                            '50th', 3, 
+                            '75th', 4, 
+                            '100th', 5, 
+                            3],
+
+                        10, ['match', ['get', 'rank'], 
+                            '25th', 3, 
+                            '50th', 4, 
+                            '75th', 5, 
+                            '100th', 6, 
+                            4],
+
+                        22, ['match', ['get', 'rank'], 
+                            '25th', 4, 
+                            '50th', 5, 
+                            '75th', 6, 
+                            '100th', 7, 
+                            5]
                     ],
-                    'circle-opacity': 0.6 // Add this line
+                    'circle-opacity': 0.6
                 }
             });
 
 
 
-            
+            map.addLayer({
+                'id': 'vis_test3-label',
+                'type': 'symbol',
+                'source': 'vis_test3',
+                'source-layer': 'vis_test3',
+                'layout': {
+                    'symbol-sort-key': ["get", "rank"],
+                    'text-field': ["to-string", ["get", "name"]],
+                    'text-font': [
+                        "step",
+                        ["zoom"],
+                        [
+                            "step",
+                            ["get", "rank"],
+                            [
+                                "literal",
+                                [
+                                    "Open Sans ExtraBold",
+                                    "Arial Unicode MS Regular"
+                                ]
+                            ],
+                            100,
+                            [
+                                "literal",
+                                [
+                                    "Open Sans Bold",
+                                    "Arial Unicode MS Regular"
+                                ]
+                            ],
+                            1000,
+                            [
+                                "literal",
+                                [
+                                    "Open Sans SemiBold",
+                                    "Arial Unicode MS Regular"
+                                ]
+                            ],
+                            10000,
+                            [
+                                "literal",
+                                [
+                                    "Open Sans Regular",
+                                    "Arial Unicode MS Regular"
+                                ]
+                            ]
+                        ],
+                        22,
+                        [
+                            "step",
+                            ["get", "rank"],
+                            [
+                                "literal",
+                                [
+                                    "Open Sans ExtraBold",
+                                    "Arial Unicode MS Regular"
+                                ]
+                            ],
+                            250.5,
+                            [
+                                "literal",
+                                [
+                                    "Open Sans Bold",
+                                    "Arial Unicode MS Regular"
+                                ]
+                            ],
+                            500,
+                            [
+                                "literal",
+                                [
+                                    "Open Sans Regular",
+                                    "Arial Unicode MS Regular"
+                                ]
+                            ]
+                        ]
+                    ],
+                    'text-size': [
+                        "interpolate",
+                        ["linear"],
+                        ["zoom"],
+                        0,
+                        [
+                            "interpolate",
+                            ["exponential", 1.21],
+                            ["get", "sum"],
+                            9.152710914611816,
+                            7.5,
+                            41.76505661010742,
+                            11
+                        ],
+                        10,
+                        [
+                            "interpolate",
+                            ["exponential", 1.5],
+                            ["get", "sum"],
+                            9.152710914611816,
+                            12,
+                            35,
+                            20
+                        ]
+                    ],
+                },
+                'paint': {
+                    "text-color": "#202"
+                }
+            });
+
 
 
             // Create the noUiSlider
@@ -250,6 +356,20 @@
                     ]);
                 }
 
+                // Add the name-based search filter
+                const nameSearchValue = document.getElementById('name-filter').value.trim().toLowerCase();
+                if (nameSearchValue !== '') {
+                    filters.push(['match', ['downcase', ['get', 'name']], ['downcase', nameSearchValue], true, false]);
+                }
+
+                // Add the qcode-based search filter
+                const qcodeSearchValue = document.getElementById('qcode-filter').value.trim().toLowerCase();
+                if (qcodeSearchValue !== '') {
+                    filters.push(['match', ['downcase', ['get', 'wikidata_code']], ['downcase', qcodeSearchValue], true, false]);
+                }
+
+        
+      
 
                 if (filters.length > 0) {
                     filters.unshift('all');
@@ -276,6 +396,15 @@
                 updateFilters();
             });
 
+            document.getElementById('name-filter').addEventListener('input', function() {
+                updateFilters();
+            });
+
+            document.getElementById('qcode-filter').addEventListener('input', function() {
+                updateFilters();
+            });
+
+
 
             document.getElementById('toggle-labels').addEventListener('click', function() {
                 toggleVisibility('vis_test3-label');
@@ -300,9 +429,6 @@
             }
 
 
-
-
-
             map.on('click', function(e) {
                 let features = map.queryRenderedFeatures(e.point, {
                     layers: ['vis_test3-points', 'vis_lines4-lines','vis_test3-label'] // replace with your layer names
@@ -314,18 +440,17 @@
 
                 let feature = features[0];
 
+    
+
+                let url = feature.properties.url.replace(/ /g, "_");
+
                 let popup = new mapboxgl.Popup({ offset: [0, -15] })
                     .setLngLat(e.lngLat)
-                    .setHTML('<h3>' + feature.properties.name + '</h3><p>Occupation: ' + feature.properties.occupation + '</p><p>ID: ' + feature.properties.wikidata_code + '</p>')
+                    .setHTML('<h3>' + feature.properties.name + '</h3><p>Occupation: ' + feature.properties.occupation + '</p><p>ID: ' + feature.properties.wikidata_code + '</p><p>Rank: ' + feature.properties.rank + '</p><p>URL: <a href="' + url + '">' + url + '</a></p>')
                     .addTo(map);
 
-                // let popup = new mapboxgl.Popup({ offset: [0, -15] })
-                //     .setLngLat(e.lngLat)
-                //     .setHTML('<h3>' + feature.properties.name + '</h3>' +
-                //              '<p>Occupation: ' + feature.properties.occupation + '</p>' +
-                //              '<p>ID: ' + feature.properties.wikidata_code + '</p>' +
-                //              '<p><a href="' + feature.properties.url + '" target="_blank">More Info</a></p>')
-                //     .addTo(map);
+
+
 
             });
 
