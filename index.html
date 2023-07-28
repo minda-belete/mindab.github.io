@@ -357,16 +357,47 @@
                 }
 
                 // Add the name-based search filter
+                // const nameSearchValue = document.getElementById('name-filter').value.trim().toLowerCase();
+                // if (nameSearchValue !== '') {
+                //     filters.push(['match', ['downcase', ['get', 'name']], ['downcase', nameSearchValue], true, false]);
+                // }
+
+
+                // const nameSearchValue = document.getElementById('name-filter').value.trim().toLowerCase();
+                // if (nameSearchValue !== '') {
+                //     filters.push(['in', nameSearchValue, ['downcase', ['get', 'name']]]);
+                // }
+
+
                 const nameSearchValue = document.getElementById('name-filter').value.trim().toLowerCase();
-                if (nameSearchValue !== '') {
-                    filters.push(['match', ['downcase', ['get', 'name']], ['downcase', nameSearchValue], true, false]);
-                }
+                    if (nameSearchValue !== '') {
+                        const names = nameSearchValue.split(',');
+                        const nameFilters = names.map(name => ['in', name.trim(), ['downcase', ['get', 'name']]]);
+                        if (nameFilters.length > 1) {
+                            nameFilters.unshift('any');
+                            filters.push(nameFilters);
+                        } else {
+                            filters.push(nameFilters[0]);
+                        }
+                    }
 
                 // Add the qcode-based search filter
+                // const qcodeSearchValue = document.getElementById('qcode-filter').value.trim().toLowerCase();
+                // if (qcodeSearchValue !== '') {
+                //     filters.push(['match', ['downcase', ['get', 'wikidata_code']], ['downcase', qcodeSearchValue], true, false]);
+                // }
+
                 const qcodeSearchValue = document.getElementById('qcode-filter').value.trim().toLowerCase();
-                if (qcodeSearchValue !== '') {
-                    filters.push(['match', ['downcase', ['get', 'wikidata_code']], ['downcase', qcodeSearchValue], true, false]);
-                }
+                    if (qcodeSearchValue !== '') {
+                        const qcodes = qcodeSearchValue.split(',');
+                        const qcodeFilters = qcodes.map(qcode => ['==', ['downcase', ['get', 'wikidata_code']], ['downcase', qcode.trim()]]);
+                        if (qcodeFilters.length > 1) {
+                            qcodeFilters.unshift('any');
+                            filters.push(qcodeFilters);
+                        } else {
+                            filters.push(qcodeFilters[0]);
+                        }
+                    }
 
         
       
