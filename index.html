@@ -77,7 +77,8 @@
                 <button id="reset" class="btn btn-outline-primary">Reset birth year to default</button>
             </div>
         </div>
-        <p>For more visibility you can remove the names, points or lines</p>
+        <p>For more visibility you may want to remove the names, points or lines. </p>
+        <p>Click it again to get back what you removed</p>
         <button id="toggle-labels">Toggle Labels</button>
         <button id="toggle-points">Toggle Points</button>
         <button id="toggle-lines">Toggle Lines</button>
@@ -91,6 +92,15 @@
             <label for="qcode-filter">Search by Wikidata code</label>
             <input type="text" class="form-control" id="qcode-filter" placeholder="Enter individaul qcode">
         </div>
+
+        <p>Select label. By default it is location name</p>
+        <select id="label-field" onchange="updateLabelField()">
+          <option value="lname" selected>Location Name</option>
+          <option value="name">Name</option>
+          <option value="gender">Gender</option>
+          <option value="year">Year</option>
+        </select>
+
 
     </div>
 
@@ -106,6 +116,13 @@
             style: 'mapbox://styles/ethio0943/clkci2640001j01po8m6lg1i1',
             zoom: 2
         });
+
+
+        // Define updateLabelField globally
+        function updateLabelField() {
+            const labelField = document.getElementById('label-field').value;
+            map.setLayoutProperty('vis_test3-label', 'text-field', ['to-string', ['get', labelField]]);
+        }
 
         // Global filter state
         let filterState = {
@@ -304,6 +321,9 @@
             });
 
 
+      
+
+
 
             // Create the noUiSlider
             const birthyearSlider = noUiSlider.create(document.getElementById('birthyear-slider'), {
@@ -481,8 +501,9 @@
 
                 let popup = new mapboxgl.Popup({ offset: [0, -15] })
                     .setLngLat(e.lngLat)
-                    .setHTML('<h3>' + feature.properties.name + '</h3><p>Occupation: ' + feature.properties.occupation + '</p><p>ID: ' + feature.properties.wikidata_code + '</p><p>Rank: ' + feature.properties.rank + '</p><p>URL: <a href="' + url + '">' + url + '</a></p>')
+                    .setHTML('<h3>' + feature.properties.name + '</h3><p>Occupation: ' + feature.properties.occupation + '</p><p>ID: ' + feature.properties.wikidata_code + '</p><p>Rank: ' + feature.properties.rank + '</p>'+'<p>Year: ' + feature.properties.year + '</p><p>URL: <a href="' + url + '">' + url + '</a></p>')
                     .addTo(map);
+
 
 
 
