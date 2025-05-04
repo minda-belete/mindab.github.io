@@ -1,0 +1,139 @@
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Ranked Word Map</title>
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+  <link href="https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.css" rel="stylesheet">
+  <script src="https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #0c0c1e;
+    }
+    #map {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 100%;
+    }
+    #menu {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0,0,0,0.6);
+      color: #fff;
+      padding: 15px;
+      font-family: 'Open Sans', sans-serif;
+      font-size: 13px;
+      max-width: 250px;
+      border-radius: 8px;
+    }
+    a {
+      color: #FFB333;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div id="menu">
+    <h3>Verbs and Nouns</h3>
+    <p>More important words (more frequent) are larger and more visible. Zoom in to see more.</p>
+    <p>Inspired by <a href="https://tjukanovt.github.io/notable-people" target="_blank">Notable People by Topi Tjukanov</a></p>
+    <p>Made by Minda Belete</p>
+  </div>
+
+  <script>
+    mapboxgl.accessToken = 'pk.eyJ1IjoibWluZGFiZWxldGUiLCJhIjoiY21hNmVkZnlwMG9yYjJpczZnamdneDc3biJ9.SJXyYEKI9OlRARaDr2c9lQ';
+
+    const map = new mapboxgl.Map({
+      container: 'map',
+      style: 'mapbox://styles/mapbox/navigation-night-v1',
+      center: [0, 20],
+      zoom: 2
+    });
+
+    map.on('style.load', () => {
+      map.setProjection('globe');
+      // ✅ HIDE ALL DEFAULT LABELS
+      const labelLayers = map.getStyle().layers.filter(l => 
+        l.type === 'symbol' && l.layout && l.layout['text-field']
+      );
+      labelLayers.forEach(layer => {
+        map.setLayoutProperty(layer.id, 'visibility', 'none');
+      });
+    });
+
+
+    map.on('load', () => {
+      map.addSource('debug-words', {
+        type: 'vector',
+        url: 'mapbox://mindabelete.cma9zsinm7bba1qpmnh7ezl5q-24rkx'
+      });
+
+      map.addLayer({
+        'id': 'debug-words-layer',
+        'type': 'symbol',
+        'source': 'debug-words',
+        'source-layer': 'top',
+        'layout': {
+          'symbol-sort-key': ['to-number', ['get', 'rank']],
+          'text-field': ['get', 'nouns_and_verbs'],
+          'text-font': [
+            'step',
+            ['to-number', ['get', 'rank']],
+            ['literal', ['Open Sans ExtraBold', 'Arial Unicode MS Regular']],
+            100,
+            ['literal', ['Open Sans Bold', 'Arial Unicode MS Regular']],
+            1000,
+            ['literal', ['Open Sans SemiBold', 'Arial Unicode MS Regular']],
+            3000,
+            ['literal', ['Open Sans Regular', 'Arial Unicode MS Regular']]
+          ],
+          'text-size': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            0, [
+              'step',
+              ['to-number', ['get', 'rank']],
+              48, 101, 32, 501, 16, 3001, 8
+            ],
+            3, [
+              'step',
+              ['to-number', ['get', 'rank']],
+              64, 101, 40, 501, 20, 3001, 10
+            ],
+            5, [
+              'step',
+              ['to-number', ['get', 'rank']],
+              80, 101, 48, 501, 32, 3001, 14
+            ]
+          ]
+        },
+        'paint': {
+          'text-color': '#FBBBFF',
+          'text-opacity': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            0, [
+              'step',
+              ['to-number', ['get', 'rank']],
+              1, 1001, 0
+            ],
+            3, [
+              'step',
+              ['to-number', ['get', 'rank']],
+              1, 3001, 0
+            ],
+            5, 1
+          ],
+          'text-halo-color': '#000',
+          'text-halo-width': 1.2
+        }
+      });
+    });
+  </script>
+</body>
+</html>
