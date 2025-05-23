@@ -1,0 +1,140 @@
+
+ <!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Ranked Word Map</title>
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+  <link href="https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.css" rel="stylesheet">
+  <script src="https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #0c0c1e;
+    }
+    #map {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 100%;
+    }
+    #menu {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0,0,0,0.6);
+      color: #fff;
+      padding: 15px;
+      font-family: 'Open Sans', sans-serif;
+      font-size: 13px;
+      max-width: 250px;
+      border-radius: 8px;
+    }
+    a {
+      color: #FFB333;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div id="menu">
+    <h3>Verbs and Nouns</h3>
+    <p>Frequent words are larger and more visible. Zoom in to see more detail.</p>
+    <p>Inspired by <a href="https://tjukanovt.github.io/notable-people" target="_blank">Notable People by Topi Tjukanov</a></p>
+    <p>Made by Minda Belete</p>
+  </div>
+
+  <script>
+    mapboxgl.accessToken = 'pk.eyJ1IjoibWluZGFiZWxldGUiLCJhIjoiY21hNmVkZnlwMG9yYjJpczZnamdneDc3biJ9.SJXyYEKI9OlRARaDr2c9lQ';
+
+    const map = new mapboxgl.Map({
+      container: 'map',
+      style: 'mapbox://styles/mapbox/navigation-night-v1',
+      center: [0, 20],
+      zoom: 1,
+      pitch: 0
+    });
+
+    map.on('style.load', () => {
+      map.setProjection('globe');
+      map.setFog({});
+
+      // Hide default symbol layers
+      const labelLayers = map.getStyle().layers.filter(l =>
+        l.type === 'symbol' && l.layout && l.layout['text-field']
+      );
+      labelLayers.forEach(layer => {
+        map.setLayoutProperty(layer.id, 'visibility', 'none');
+      });
+    });
+
+    map.on('load', () => {
+      map.addSource('debug-words', {
+        type: 'vector',
+        url: 'mapbox://mindabelete.cmb0gp8rs24xe1nmsx75tr86y-8l5eh'
+      });
+
+      map.addLayer({
+        'id': 'debug-words-layer',
+        'type': 'symbol',
+        'source': 'debug-words',
+        'source-layer': 'words',
+        'layout': {
+          'symbol-sort-key': ['-', ['to-number', ['get', 'count']]],
+          'text-field': ['get', 'vers_and_nouns'],
+
+          'text-font': [
+            'step',
+            ['zoom'],
+            [
+              'step',
+              ['to-number', ['get', 'count']],
+              ['literal', ['Open Sans Regular', 'Arial Unicode MS Regular']],
+              1000, ['literal', ['Open Sans SemiBold', 'Arial Unicode MS Regular']],
+              5000, ['literal', ['Open Sans Bold', 'Arial Unicode MS Regular']],
+              21150, ['literal', ['Open Sans ExtraBold', 'Arial Unicode MS Regular']]
+            ],
+            10,
+            [
+              'step',
+              ['to-number', ['get', 'count']],
+              ['literal', ['Open Sans Regular', 'Arial Unicode MS Regular']],
+              1000, ['literal', ['Open Sans SemiBold', 'Arial Unicode MS Regular']],
+              5000, ['literal', ['Open Sans Bold', 'Arial Unicode MS Regular']],
+              21150, ['literal', ['Open Sans ExtraBold', 'Arial Unicode MS Regular']]
+            ]
+          ],
+
+          'text-size': [
+            'interpolate', ['linear'], ['zoom'],
+            0, [
+              'interpolate', ['exponential', 1.6], ['to-number', ['get', 'count']],
+              120, 10,
+              1000, 14,
+              3000, 48,
+              21150, 48
+            ],
+            10, [
+              'interpolate', ['exponential', 1.8], ['to-number', ['get', 'count']],
+              120, 14,
+              1000, 22,
+              3000, 48,
+              21150, 48,
+            ]
+          ],
+
+          // 🔥 Force text to always show — even if it overlaps
+          'text-allow-overlap': false,
+          'text-ignore-placement': false
+        },
+
+        'paint': {
+          'text-color': 'white'
+        }
+      });
+
+    });
+  </script>
+</body>
+</html>
