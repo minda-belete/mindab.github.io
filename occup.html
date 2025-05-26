@@ -1,0 +1,257 @@
+
+ <!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Ranked Word Map</title>
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+  <link href="https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.css" rel="stylesheet">
+  <script src="https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #0c0c1e;
+    }
+    #map {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 100%;
+    }
+    #menu {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0,0,0,0.6);
+      color: #fff;
+      padding: 15px;
+      font-family: 'Open Sans', sans-serif;
+      font-size: 13px;
+      max-width: 250px;
+      border-radius: 8px;
+    }
+    a {
+      color: #FFB333;
+    }
+    .checkbox-group {
+      margin-top: 10px;
+    }
+    .checkbox-group label {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div id="menu">
+    <h3>Occupations</h3>
+    <p>Frequent occup are larger and more visible. Zoom in to see more detail.</p>
+    <p>Using data from <a href ='https://www.nature.com/articles/s41597-022-01369-4' target='_blank'>Morgane Laouenan et al</a>., the map is showing occupations of notable people around the world. This is based on their trajectory.
+    <p>Inspired by <a href="https://tjukanovt.github.io/notable-people" target="_blank">Notable People by Topi Tjukanov</a></p>
+
+    <div class="checkbox-group">
+      <label><input type="radio" name="period" value="All" checked> All</label>
+      <label><input type="radio" name="period" value="Ancient History"> Ancient History</label>
+      <label><input type="radio" name="period" value="Post-Classical History"> Post-Classical History</label>
+      <label><input type="radio" name="period" value="Early Modern Period"> Early Modern Period</label>
+      <label><input type="radio" name="period" value="Mid Modern Period"> Mid Modern Period</label>
+      <label><input type="radio" name="period" value="Contemporary Period"> Contemporary Period</label>
+    </div>
+  </div>
+
+  <script>
+    mapboxgl.accessToken = 'pk.eyJ1IjoibWluZGFiZWxldGUiLCJhIjoiY21hNmVkZnlwMG9yYjJpczZnamdneDc3biJ9.SJXyYEKI9OlRARaDr2c9lQ';
+
+    const map = new mapboxgl.Map({
+      container: 'map',
+      style: 'mapbox://styles/mapbox/navigation-night-v1',
+      center: [0, 20],
+      zoom: 1
+    });
+
+    map.on('style.load', () => {
+      map.setProjection('globe');
+      map.setFog({});
+
+      const labelLayers = map.getStyle().layers.filter(l =>
+        l.type === 'symbol' && l.layout && l.layout['text-field']
+      );
+      labelLayers.forEach(layer => {
+        map.setLayoutProperty(layer.id, 'visibility', 'none');
+      });
+
+      // ✅ Hide all line layers (streets, railways, etc.)
+      map.getStyle().layers.forEach(layer => {
+        if (layer.type === 'line') {
+          map.setLayoutProperty(layer.id, 'visibility', 'none');
+        }
+      });
+
+      // ✅ Hide all boundary layers
+      [
+        'admin-0-boundary',
+        'admin-0-boundary-disputed'
+      ].forEach(id => {
+        map.setLayoutProperty(id, 'visibility', 'visible');
+      });
+    });
+
+
+  
+
+    map.on('load', () => {
+      // All occupations layer (existing tileset)
+      map.addSource('occup-source', {
+        type: 'vector',
+        url: 'mapbox://mindabelete.cmb4oz71i03z01oo8u16b834f-1z5wj'
+      });
+
+      map.addLayer({
+        'id': 'occup-layer',
+        'type': 'symbol',
+        'source': 'occup-source',
+        'source-layer': 'occup',
+        'layout': {
+          'symbol-sort-key': ['-', ['to-number', ['get', 'count']]],
+          'text-field': ['get', 'level3_main_occ'],
+
+          'text-font': [
+            'step',
+            ['zoom'],
+            [
+              'step',
+              ['to-number', ['get', 'count']],
+              ['literal', ['Open Sans Regular', 'Arial Unicode MS Regular']],
+              1000, ['literal', ['Open Sans SemiBold', 'Arial Unicode MS Regular']],
+              5000, ['literal', ['Open Sans Bold', 'Arial Unicode MS Regular']],
+              21150, ['literal', ['Open Sans ExtraBold', 'Arial Unicode MS Regular']]
+            ],
+            10,
+            [
+              'step',
+              ['to-number', ['get', 'count']],
+              ['literal', ['Open Sans Regular', 'Arial Unicode MS Regular']],
+              1000, ['literal', ['Open Sans SemiBold', 'Arial Unicode MS Regular']],
+              5000, ['literal', ['Open Sans Bold', 'Arial Unicode MS Regular']],
+              21150, ['literal', ['Open Sans ExtraBold', 'Arial Unicode MS Regular']]
+            ]
+          ],
+
+          'text-size': [
+            'interpolate', ['linear'], ['zoom'],
+            0, [
+              'interpolate', ['exponential', 1.6], ['to-number', ['get', 'count']],
+              120, 10,
+              1000, 14,
+              3000, 48,
+              21150, 48
+            ],
+            10, [
+              'interpolate', ['exponential', 1.8], ['to-number', ['get', 'count']],
+              120, 14,
+              1000, 22,
+              3000, 48,
+              21150, 48,
+            ]
+          ],
+
+          // 🔥 Force text to always show — even if it overlaps
+          'text-allow-overlap': false,
+          'text-ignore-placement': false
+        },
+
+        'paint': {
+          'text-color': 'white'
+        }
+      });
+
+      // Period-specific occupations layer (new tileset)
+      map.addSource('occup-periods-source', {
+        type: 'vector',
+        url: 'mapbox://mindabelete.cmb4ptigi04a21mt7e808uu7h-7uf55'
+      });
+
+      map.addLayer({
+        'id': 'occup-periods-layer',
+        'type': 'symbol',
+        'source': 'occup-periods-source',
+        'source-layer': 'occup-periods',
+        'layout': {
+          'symbol-sort-key': ['-', ['to-number', ['get', 'count']]],
+          'text-field': ['get', 'level3_main_occ'],
+
+          'text-font': [
+            'step',
+            ['zoom'],
+            [
+              'step',
+              ['to-number', ['get', 'count']],
+              ['literal', ['Open Sans Regular', 'Arial Unicode MS Regular']],
+              1000, ['literal', ['Open Sans SemiBold', 'Arial Unicode MS Regular']],
+              5000, ['literal', ['Open Sans Bold', 'Arial Unicode MS Regular']],
+              21150, ['literal', ['Open Sans ExtraBold', 'Arial Unicode MS Regular']]
+            ],
+            10,
+            [
+              'step',
+              ['to-number', ['get', 'count']],
+              ['literal', ['Open Sans Regular', 'Arial Unicode MS Regular']],
+              1000, ['literal', ['Open Sans SemiBold', 'Arial Unicode MS Regular']],
+              5000, ['literal', ['Open Sans Bold', 'Arial Unicode MS Regular']],
+              21150, ['literal', ['Open Sans ExtraBold', 'Arial Unicode MS Regular']]
+            ]
+          ],
+
+          'text-size': [
+            'interpolate', ['linear'], ['zoom'],
+            0, [
+              'interpolate', ['exponential', 1.6], ['to-number', ['get', 'count']],
+              120, 10,
+              1000, 14,
+              3000, 48,
+              21150, 48
+            ],
+            10, [
+              'interpolate', ['exponential', 1.8], ['to-number', ['get', 'count']],
+              120, 14,
+              1000, 22,
+              3000, 48,
+              21150, 48,
+            ]
+          ],
+
+          // 🔥 Force text to always show — even if it overlaps
+          'text-allow-overlap': false,
+          'text-ignore-placement': false
+        },
+
+        'paint': {
+          'text-color': 'white'
+        },
+        'filter': ['==', ['get', 'big_period'], 'Ancient History'] // initial default
+      });
+
+      // Hide the period layer by default
+      map.setLayoutProperty('occup-periods-layer', 'visibility', 'none');
+
+      // Handle radio button changes
+      const radios = document.querySelectorAll('input[name="period"]');
+      radios.forEach(radio => {
+        radio.addEventListener('change', () => {
+          const value = radio.value;
+
+          if (value === 'All') {
+            map.setLayoutProperty('occup-layer', 'visibility', 'visible');
+            map.setLayoutProperty('occup-periods-layer', 'visibility', 'none');
+          } else {
+            map.setLayoutProperty('occup-layer', 'visibility', 'none');
+            map.setLayoutProperty('occup-periods-layer', 'visibility', 'visible');
+            map.setFilter('occup-periods-layer', ['==', ['get', 'big_period'], value]);
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>
