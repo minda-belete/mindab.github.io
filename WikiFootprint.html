@@ -1,0 +1,173 @@
+
+ <!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Trajectory Visualizer — Exact Pinned Markers</title>
+<meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.css" rel="stylesheet" />
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.js"></script>
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; background: #001f3f; font-family: 'Helvetica Neue', sans-serif; color: white; }
+  #map { position: absolute; top: 60px; bottom: 0; width: 100%; }
+  #input-container {
+    position: absolute;
+    top: 10px; left: 50%; transform: translateX(-50%);
+    display: flex; background: rgba(0, 0, 0, 0.5); border-radius: 30px; overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 1;
+  }
+  input {
+    border: none; padding: 10px 20px; font-size: 16px; background: transparent; color: white;
+    outline: none; width: 250px;
+  }
+  input::placeholder { color: #aaa; }
+  button {
+    background: #0074D9; color: white; border: none; padding: 10px 20px; cursor: pointer;
+    font-weight: bold; transition: background 0.3s;
+  }
+  button:hover { background: #0056b3; }
+</style>
+</head>
+<body>
+<div id="input-container">
+  <input type="text" id="personName" placeholder="Enter a name like 'Barack Obama'" />
+  <button onclick="searchPerson()">Search</button>
+</div>
+<div id="map"></div>
+
+<script>
+mapboxgl.accessToken = 'pk.eyJ1IjoibWluZGFiZWxldGUiLCJhIjoiY21hNmVkZnlwMG9yYjJpczZnamdneDc3biJ9.SJXyYEKI9OlRARaDr2c9lQ';
+
+const map = new mapboxgl.Map({
+  container: 'map',
+  style: 'mapbox://styles/mapbox/dark-v11',
+  center: [0, 20],
+  zoom: 1.5,
+  projection: 'globe'
+});
+
+map.on('style.load', () => {
+  map.setFog({
+    color: 'rgb(11, 78, 150)',
+    'high-color': 'rgb(30, 144, 255)',
+    'space-color': 'rgb(5, 12, 30)',
+    'horizon-blend': 0.02
+  });
+});
+
+let currentMarkers = [];
+
+async function searchPerson() {
+  // Remove old markers
+  currentMarkers.forEach(marker => marker.remove());
+  currentMarkers = [];
+
+  const name = document.getElementById('personName').value.trim();
+  if (!name) return alert("Please enter a name.");
+
+  const searchUrl = `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(name)}&language=en&format=json&origin=*`;
+  const searchRes = await fetch(searchUrl);
+  const searchData = await searchRes.json();
+  if (!searchData.search.length) { alert("No results found."); return; }
+  const entityId = searchData.search[0].id;
+  const entityUrl = `https://www.wikidata.org/wiki/Special:EntityData/${entityId}.json`;
+  const entityRes = await fetch(entityUrl);
+  const entityData = await entityRes.json();
+  const entity = entityData.entities[entityId];
+
+  const claims = entity.claims;
+  const trajectory = [];
+
+  function addPlace(propId, eventLabel) {
+    if (claims[propId]) {
+      claims[propId].forEach(claim => {
+        const placeId = claim.mainsnak.datavalue?.value.id;
+        let year = "Unknown";
+        if (claim.qualifiers && claim.qualifiers.P585) { year = claim.qualifiers.P585[0].datavalue.value.time.substring(1, 5); }
+        else if (claim.mainsnak.datatype === "time") { year = claim.mainsnak.datavalue.value.time.substring(1, 5); }
+        else if (claims.P569 && eventLabel === "Birth") { year = claims.P569[0].mainsnak.datavalue.value.time.substring(1, 5); }
+        else if (claims.P570 && eventLabel === "Death") { year = claims.P570[0].mainsnak.datavalue.value.time.substring(1, 5); }
+        if (placeId) { trajectory.push({ placeId, year, event: eventLabel }); }
+      });
+    }
+  }
+
+  addPlace("P19", "Birth");
+  addPlace("P20", "Death");
+  addPlace("P551", "Residence");
+  addPlace("P17", "Country");
+  addPlace("P27", "Citizenship");
+
+  if (!trajectory.length) { alert("No trajectory data found."); return; }
+
+  const uniquePlaceIds = [...new Set(trajectory.map(t => t.placeId))];
+  const placeFetches = uniquePlaceIds.map(id =>
+    fetch(`https://www.wikidata.org/wiki/Special:EntityData/${id}.json`).then(r => r.json())
+  );
+  const placeDataArray = await Promise.all(placeFetches);
+
+  const placeMap = {};
+  placeDataArray.forEach(placeData => {
+    const placeId = Object.keys(placeData.entities)[0];
+    const placeEntity = placeData.entities[placeId];
+    if (placeEntity.claims.P625) {
+      const coords = placeEntity.claims.P625[0].mainsnak.datavalue.value;
+      placeMap[placeId] = {
+        lat: coords.latitude,
+        lon: coords.longitude,
+        name: placeEntity.labels.en ? placeEntity.labels.en.value : "Unknown"
+      };
+    }
+  });
+
+  const validPoints = trajectory.map(item => {
+    const place = placeMap[item.placeId];
+    return place ? { ...item, ...place } : null;
+  }).filter(Boolean);
+
+  if (!validPoints.length) { alert("No geographic data available."); return; }
+
+  map.flyTo({ center: [validPoints[0].lon, validPoints[0].lat], zoom: 4, pitch: 0, bearing: 0, essential: true });
+
+  // Create SVG markers
+  validPoints.forEach(item => {
+    const el = document.createElement('div');
+    el.innerHTML = `
+      <svg viewBox="0 0 24 24" width="24" height="24">
+        <circle cx="12" cy="12" r="6" fill="#00bfff" stroke="white" stroke-width="2" />
+      </svg>
+    `;
+    const marker = new mapboxgl.Marker(el)
+      .setLngLat([item.lon, item.lat])
+      .setPopup(new mapboxgl.Popup().setHTML(`<b>${item.event}</b><br>${item.name}<br>Year: ${item.year}`))
+      .addTo(map);
+    currentMarkers.push(marker);
+  });
+
+  if (validPoints.length > 1) {
+    const lineCoords = validPoints.map(p => [p.lon, p.lat]);
+    if (map.getSource('trajectory')) {
+      map.getSource('trajectory').setData({
+        type: 'Feature',
+        geometry: { type: 'LineString', coordinates: lineCoords }
+      });
+    } else {
+      map.addSource('trajectory', {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          geometry: { type: 'LineString', coordinates: lineCoords }
+        }
+      });
+      map.addLayer({
+        id: 'trajectory',
+        type: 'line',
+        source: 'trajectory',
+        paint: { 'line-color': '#00bfff', 'line-width': 3, 'line-opacity': 0.7, 'line-blur': 2 }
+      });
+    }
+  }
+}
+</script>
+</body>
+</html>
